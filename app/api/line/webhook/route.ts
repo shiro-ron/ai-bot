@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { pickTarotIndex } from "@/utils/seed";
 import { simpleFortune } from "@/utils/fortune";
+import { fortuneToFlex, quickReplyBasics, paymentLinkFlex } from "@/utils/flex";
+import { replyMessage } from "@/utils/line";
 
-export const runtime = "nodejs"; // Node runtime for HMAC
-
+export const runtime = "nodejs";
 const CHANNEL_SECRET = process.env.LINE_CHANNEL_SECRET ?? "";
-const CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN ?? "";
 
 function verifySignature(bodyText: string, signature: string | null): boolean {
   if (!signature || !CHANNEL_SECRET) return false;
@@ -16,70 +16,52 @@ function verifySignature(bodyText: string, signature: string | null): boolean {
   return crypto.timingSafeEqual(Buffer.from(calc), Buffer.from(signature));
 }
 
-async function replyMessage(replyToken: string, messages: any[]) {
-  const r = await fetch("https://api.line.me/v2/bot/message/reply", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${CHANNEL_ACCESS_TOKEN}`
-    },
-    body: JSON.stringify({ replyToken, messages })
-  });
-  if (!r.ok) {
-    const t = await r.text();
-    console.error("LINE reply error:", r.status, t);
-  }
-}
-
 export async function POST(req: NextRequest) {
   const signature = req.headers.get("x-line-signature");
   const bodyText = await req.text();
-  const ok = verifySignature(bodyText, signature);
-  if (!ok) {
+  if (!verifySignature(bodyText, signature)) {
     return NextResponse.json({ error: "invalid signature" }, { status: 401 });
   }
 
   let payload: any;
-  try {
-    payload = JSON.parse(bodyText);
-  } catch {
-    return NextResponse.json({ error: "bad json" }, { status: 400 });
-  }
+  try { payload = JSON.parse(bodyText); } catch { return NextResponse.json({ error: "bad json" }, { status: 400 }); }
 
   const events = payload.events ?? [];
   for (const ev of events) {
     try {
       if (ev.type === "message" && ev.message?.type === "text") {
-        const userId = ev.source?.userId ?? "anonymous";
-        const text = (ev.message.text as string).trim();
+        const text: string = (ev.message.text as string).trim();
+        const userId: string = ev.source?.userId ?? "anonymous";
 
-        if (text.includes("今日") && text.includes("運勢") || text === "今日の運勢") {
-          const ymd = new Date().toISOString().slice(0, 10);
+        if (text.includes("今日") && text.includes("運勢")) {
+          const ymd = new Date().toISOString().slice(0,10);
           const idx = pickTarotIndex(userId, ymd, "daily");
           const f = simpleFortune(idx);
-          await replyMessage(ev.replyToken, [
-            { type: "text", text: `${f.title}
-
-${f.summary}
-
-ラッキーカラー：${f.luckyColor}
-今日の行動：
-・${f.actions.join("\n・")}
-
-${f.disclaimer}` }
-          ]);
-        } else {
-          await replyMessage(ev.replyToken, [
-            { type: "text", text: "「今日の運勢」と送ってみてください。例：今日の運勢" }
-          ]);
+          await replyMessage(ev.replyToken, [{
+            ...fortuneToFlex(f),
+            quickReply: quickReplyBasics()
+          }]);
+          continue;
         }
+
+        if (text.startsWith("相性")) {
+          const url = process.env.STRIPE_PAYMENT_LINK_URL;
+          if (url) await replyMessage(ev.replyToken, [paymentLinkFlex(url)]);
+          else await replyMessage(ev.replyToken, [{ type: "text", text: "相性鑑定の購入リンクが未設定です。管理者は STRIPE_PAYMENT_LINK_URL を設定してください。" }]);
+          continue;
+        }
+
+        if (text === "ユーザーID") {
+          await replyMessage(ev.replyToken, [{ type: "text", text: `あなたのユーザーID: ${userId}` }]);
+          continue;
+        }
+
+        await replyMessage(ev.replyToken, [{ type: "text", text: "「今日の運勢」と送ってみてください。相性鑑定は「相性 1990-01-01 1993-05-05」です。" }]);
       } else if (ev.type === "follow") {
-        await replyMessage(ev.replyToken, [
-          { type: "text", text: "友だち追加ありがとうございます！「今日の運勢」と送ると占えます。" }
-        ]);
+        await replyMessage(ev.replyToken, [{ type: "text", text: "友だち追加ありがとうございます！「今日の運勢」と送ると占えます。毎朝配信を希望の方は「ユーザーID」と送ってIDを控えてください。" }]);
       }
-    } catch (err) {
-      console.error("event handling error:", err);
+    } catch (e) {
+      console.error("event handling error:", e);
     }
   }
 

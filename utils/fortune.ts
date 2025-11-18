@@ -20,7 +20,6 @@ const tarotNames = [
   "Pentacles Page","Pentacles Knight","Pentacles Queen","Pentacles King"
 ];
 
-/** とても簡易的なテンプレート文を返す（LLM無しでも動く） */
 export function simpleFortune(cardIndex: number): Fortune {
   const name = tarotNames[cardIndex] ?? "The Star";
   const base = cardIndex % 5;
@@ -31,9 +30,7 @@ export function simpleFortune(cardIndex: number): Fortune {
     "不要なものを手放すと吉。",
     "丁寧な準備が成果に直結。"
   ][base];
-
   const summary = `${name} の気配。${adviceA}`;
-
   const lucky = ["水色","白","緑","金","紺"][base];
   const actions = [
     ["5分の散歩","机まわりを整える","深呼吸3回"],
@@ -42,12 +39,5 @@ export function simpleFortune(cardIndex: number): Fortune {
     ["不要なタスクを捨てる","デスクを拭く","早寝を意識"],
     ["資料を1つ仕上げる","10分だけ学習","先延ばしを1つ解決"]
   ][base];
-
-  return {
-    title: `今日の運勢：${name}`,
-    summary,
-    luckyColor: lucky,
-    actions,
-    disclaimer: "※本コンテンツは娯楽・自己内省のためのものです。医療・法律・投資等の助言にはあたりません。"
-  };
+  return { title: "今日の運勢", summary, luckyColor: lucky, actions, disclaimer: "※本コンテンツは娯楽・自己内省のためのものです。医療・法律・投資等の助言にはあたりません。" };
 }
