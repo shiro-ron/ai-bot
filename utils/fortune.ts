@@ -10,7 +10,6 @@ const tarotNames = [
   "The Fool","The Magician","The High Priestess","The Empress","The Emperor","The Hierophant",
   "The Lovers","The Chariot","Strength","The Hermit","Wheel of Fortune","Justice","The Hanged Man",
   "Death","Temperance","The Devil","The Tower","The Star","The Moon","The Sun","Judgement","The World",
-  // Minor Arcana (names simplified for brevity)
   "Wands Ace","Wands Two","Wands Three","Wands Four","Wands Five","Wands Six","Wands Seven","Wands Eight","Wands Nine","Wands Ten",
   "Wands Page","Wands Knight","Wands Queen","Wands King",
   "Cups Ace","Cups Two","Cups Three","Cups Four","Cups Five","Cups Six","Cups Seven","Cups Eight","Cups Nine","Cups Ten",

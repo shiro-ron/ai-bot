@@ -3,7 +3,7 @@ import crypto from "crypto";
 import { pickTarotIndex } from "@/utils/seed";
 import { simpleFortune } from "@/utils/fortune";
 
-export const runtime = "nodejs"; // use Node.js runtime (crypto HMAC is needed)
+export const runtime = "nodejs"; // Node runtime for HMAC
 
 const CHANNEL_SECRET = process.env.LINE_CHANNEL_SECRET ?? "";
 const CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN ?? "";
@@ -13,7 +13,6 @@ function verifySignature(bodyText: string, signature: string | null): boolean {
   const hmac = crypto.createHmac("sha256", CHANNEL_SECRET);
   hmac.update(bodyText);
   const calc = hmac.digest("base64");
-  // constant-time compare
   return crypto.timingSafeEqual(Buffer.from(calc), Buffer.from(signature));
 }
 
@@ -43,7 +42,7 @@ export async function POST(req: NextRequest) {
   let payload: any;
   try {
     payload = JSON.parse(bodyText);
-  } catch (e) {
+  } catch {
     return NextResponse.json({ error: "bad json" }, { status: 400 });
   }
 
@@ -54,7 +53,7 @@ export async function POST(req: NextRequest) {
         const userId = ev.source?.userId ?? "anonymous";
         const text = (ev.message.text as string).trim();
 
-        if (text.includes("今日") && text.includes("運勢") or text === "今日の運勢") {
+        if (text.includes("今日") && text.includes("運勢") || text === "今日の運勢") {
           const ymd = new Date().toISOString().slice(0, 10);
           const idx = pickTarotIndex(userId, ymd, "daily");
           const f = simpleFortune(idx);
@@ -78,11 +77,9 @@ ${f.disclaimer}` }
         await replyMessage(ev.replyToken, [
           { type: "text", text: "友だち追加ありがとうございます！「今日の運勢」と送ると占えます。" }
         ]);
-      } else if (ev.type === "ping") {
-        // for health checks (rare)
       }
     } catch (err) {
-      console.error("event h&&ling error:", err);
+      console.error("event handling error:", err);
     }
   }
 
