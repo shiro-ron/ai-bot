@@ -4,30 +4,26 @@ import { pickTarotIndex } from "@/utils/seed";
 import { simpleFortune } from "@/utils/fortune";
 import { fortuneToFlex, quickReplyBasics, paymentLinkFlex } from "@/utils/flex";
 import { replyMessage } from "@/utils/line";
+import { upsertSubscriber } from "@/utils/db";
 
 export const runtime = "nodejs";
 const CHANNEL_SECRET = process.env.LINE_CHANNEL_SECRET ?? "";
 
 function verifySignature(bodyText: string, signature: string | null): boolean {
   if (!signature || !CHANNEL_SECRET) return false;
-  const hmac = crypto.createHmac("sha256", CHANNEL_SECRET);
-  hmac.update(bodyText);
-  const calc = hmac.digest("base64");
-  return crypto.timingSafeEqual(Buffer.from(calc), Buffer.from(signature));
+  const h = crypto.createHmac("sha256", CHANNEL_SECRET).update(bodyText).digest("base64");
+  return crypto.timingSafeEqual(Buffer.from(h), Buffer.from(signature ?? ""));
 }
 
 export async function POST(req: NextRequest) {
-  const signature = req.headers.get("x-line-signature");
+  const sig = req.headers.get("x-line-signature");
   const bodyText = await req.text();
-  if (!verifySignature(bodyText, signature)) {
-    return NextResponse.json({ error: "invalid signature" }, { status: 401 });
-  }
+  if (!verifySignature(bodyText, sig)) return NextResponse.json({ error: "invalid signature" }, { status: 401 });
 
   let payload: any;
   try { payload = JSON.parse(bodyText); } catch { return NextResponse.json({ error: "bad json" }, { status: 400 }); }
 
-  const events = payload.events ?? [];
-  for (const ev of events) {
+  for (const ev of (payload.events ?? [])) {
     try {
       if (ev.type === "message" && ev.message?.type === "text") {
         const text: string = (ev.message.text as string).trim();
@@ -37,10 +33,7 @@ export async function POST(req: NextRequest) {
           const ymd = new Date().toISOString().slice(0,10);
           const idx = pickTarotIndex(userId, ymd, "daily");
           const f = simpleFortune(idx);
-          await replyMessage(ev.replyToken, [{
-            ...fortuneToFlex(f),
-            quickReply: quickReplyBasics()
-          }]);
+          await replyMessage(ev.replyToken, [{ ...fortuneToFlex(f), quickReply: quickReplyBasics() }]);
           continue;
         }
 
@@ -51,19 +44,34 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
+        if (text === "購読ON") {
+          const uid = ev.source?.userId;
+          if (uid) await upsertSubscriber(uid, true);
+          await replyMessage(ev.replyToken, [{ type: "text", text: "毎朝の配信をオンにしました。" }]);
+          continue;
+        }
+        if (text === "購読OFF") {
+          const uid = ev.source?.userId;
+          if (uid) await upsertSubscriber(uid, false);
+          await replyMessage(ev.replyToken, [{ type: "text", text: "毎朝の配信をオフにしました。" }]);
+          continue;
+        }
+
         if (text === "ユーザーID") {
           await replyMessage(ev.replyToken, [{ type: "text", text: `あなたのユーザーID: ${userId}` }]);
           continue;
         }
 
-        await replyMessage(ev.replyToken, [{ type: "text", text: "「今日の運勢」と送ってみてください。相性鑑定は「相性 1990-01-01 1993-05-05」です。" }]);
+        await replyMessage(ev.replyToken, [{ type: "text", text: "「今日の運勢」と送ってみてください。購読は「購読ON/購読OFF」です。相性鑑定は「相性 1990-01-01 1993-05-05」です。" }]);
       } else if (ev.type === "follow") {
-        await replyMessage(ev.replyToken, [{ type: "text", text: "友だち追加ありがとうございます！「今日の運勢」と送ると占えます。毎朝配信を希望の方は「ユーザーID」と送ってIDを控えてください。" }]);
+        const uid = ev.source?.userId;
+        if (uid) await upsertSubscriber(uid, true);
+        await replyMessage(ev.replyToken, [{ type: "text", text: "友だち追加ありがとうございます！毎朝配信を開始しました（停止は「購読OFF」）。" }]);
+      } else if (ev.type === "unfollow") {
+        const uid = ev.source?.userId;
+        if (uid) await upsertSubscriber(uid, false);
       }
-    } catch (e) {
-      console.error("event handling error:", e);
-    }
+    } catch (e) { console.error("event handling error:", e); }
   }
-
   return NextResponse.json({ ok: true });
 }
