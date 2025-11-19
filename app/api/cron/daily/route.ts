@@ -13,6 +13,7 @@ function getSubscribersFromEnv(): string[] {
 
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
+  const auth = req.headers.get("authorization");
   const key = req.nextUrl.searchParams.get("key");
   if (secret && key !== secret) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
