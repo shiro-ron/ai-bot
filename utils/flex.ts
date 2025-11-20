@@ -19,13 +19,13 @@ export function quickReplyBasics() {
   ]};
 }
 export function paymentLinkFlex(url: string) {
-  return { type: "flex", altText: "相性鑑定の購入", contents: { type: "bubble",
+  return { type: "flex", altText: "購入", contents: { type: "bubble",
     body: { type: "box", layout: "vertical", contents: [
       { type: "text", text: "相性鑑定", weight: "bold", size: "lg" },
-      { type: "text", text: "まずはご購入をお願いします。", wrap: true, margin: "md" }
+      { type: "text", text: "ボタンから決済へお進みください。", wrap: true, margin: "md" }
     ]},
     footer: { type: "box", layout: "vertical", spacing: "sm", contents: [
-      { type: "button", style: "primary", action: { type: "uri", label: "購入する（¥300）", uri: url } }
+      { type: "button", style: "primary", action: { type: "uri", label: "決済へ", uri: url } }
     ]}
   }};
 }

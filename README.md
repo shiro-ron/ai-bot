@@ -1,1 +1,1 @@
-# DB-integrated LINE bot (2025-11-19)
+# Stripe webhook build (2025-11-19)

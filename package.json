@@ -1,7 +1,7 @@
 {
-  "name": "line-fortune-bot-pro-db",
+  "name": "line-fortune-bot-pro-db-stripe",
   "private": true,
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
   "scripts": {
     "dev": "next dev",
@@ -14,7 +14,8 @@
     "react-dom": "18.2.0",
     "zod": "3.23.8",
     "@supabase/supabase-js": "2.45.4",
-    "firebase-admin": "12.5.0"
+    "firebase-admin": "12.5.0",
+    "stripe": "12.18.0"
   },
   "devDependencies": {
     "typescript": "5.4.5",

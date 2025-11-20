@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
+import Stripe from "stripe";
 import { pickTarotIndex } from "@/utils/seed";
 import { simpleFortune } from "@/utils/fortune";
 import { fortuneToFlex, quickReplyBasics, paymentLinkFlex } from "@/utils/flex";
@@ -8,11 +9,18 @@ import { upsertSubscriber } from "@/utils/db";
 
 export const runtime = "nodejs";
 const CHANNEL_SECRET = process.env.LINE_CHANNEL_SECRET ?? "";
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", { apiVersion: "2024-06-20" as any });
 
 function verifySignature(bodyText: string, signature: string | null): boolean {
   if (!signature || !CHANNEL_SECRET) return false;
   const h = crypto.createHmac("sha256", CHANNEL_SECRET).update(bodyText).digest("base64");
   return crypto.timingSafeEqual(Buffer.from(h), Buffer.from(signature ?? ""));
+}
+
+function parseCompat(text: string): { dob1: string, dob2: string } | null {
+  const m = text.match(/^相性\s+(\d{4}-\d{2}-\d{2})\s+(\d{4}-\d{2}-\d{2})$/);
+  if (!m) return null;
+  return { dob1: m[1], dob2: m[2] };
 }
 
 export async function POST(req: NextRequest) {
@@ -37,10 +45,21 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
-        if (text.startsWith("相性")) {
-          const url = process.env.STRIPE_PAYMENT_LINK_URL;
-          if (url) await replyMessage(ev.replyToken, [paymentLinkFlex(url)]);
-          else await replyMessage(ev.replyToken, [{ type: "text", text: "相性鑑定の購入リンクが未設定です。管理者は STRIPE_PAYMENT_LINK_URL を設定してください。" }]);
+        const parsed = parseCompat(text);
+        if (parsed) {
+          if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_PRICE_ID) {
+            await replyMessage(ev.replyToken, [{ type: "text", text: "決済設定が未完了です。管理者は STRIPE_SECRET_KEY と STRIPE_PRICE_ID を設定してください。" }]);
+            continue;
+          }
+          const origin = process.env.PUBLIC_BASE_URL || `https://${req.nextUrl.host}`;
+          const session = await stripe.checkout.sessions.create({
+            mode: "payment",
+            line_items: [{ price: process.env.STRIPE_PRICE_ID, quantity: 1 }],
+            success_url: `${origin}/?paid=1`,
+            cancel_url: `${origin}/?cancel=1`,
+            metadata: { line_user_id: userId, dob1: parsed.dob1, dob2: parsed.dob2 },
+          });
+          await replyMessage(ev.replyToken, [paymentLinkFlex(session.url!)]);
           continue;
         }
 
@@ -62,7 +81,7 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
-        await replyMessage(ev.replyToken, [{ type: "text", text: "「今日の運勢」と送ってみてください。購読は「購読ON/購読OFF」です。相性鑑定は「相性 1990-01-01 1993-05-05」です。" }]);
+        await replyMessage(ev.replyToken, [{ type: "text", text: "「今日の運勢」と送ってみてください。相性鑑定は「相性 1990-01-01 1993-05-05」です。" }]);
       } else if (ev.type === "follow") {
         const uid = ev.source?.userId;
         if (uid) await upsertSubscriber(uid, true);

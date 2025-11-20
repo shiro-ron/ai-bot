@@ -5,14 +5,12 @@ function backend(): Backend {
   if (b === "FIRESTORE") return "FIRESTORE";
   return "FALLBACK";
 }
-
 async function supabaseClient() {
   const url = process.env.SUPABASE_URL!;
   const key = process.env.SUPABASE_SERVICE_ROLE || process.env.SUPABASE_ANON_KEY!;
   const { createClient } = await import("@supabase/supabase-js");
   return createClient(url, key);
 }
-
 let firestoreInited = false;
 async function initFirestore() {
   const { getApps, initializeApp, cert } = await import("firebase-admin/app");
@@ -28,12 +26,10 @@ async function firestoreDb() {
   const { getFirestore } = await import("firebase-admin/firestore");
   return getFirestore();
 }
-
 function getSubscribersFromEnv(): string[] {
   const csv = process.env.SUBSCRIBERS_CSV ?? "";
   return csv.split(",").map(s => s.trim()).filter(Boolean);
 }
-
 export async function upsertSubscriber(userId: string, active = true): Promise<void> {
   const b = backend();
   if (b === "SUPABASE") {
@@ -48,7 +44,6 @@ export async function upsertSubscriber(userId: string, active = true): Promise<v
     return;
   }
 }
-
 export async function listSubscribers(): Promise<string[]> {
   const b = backend();
   if (b === "SUPABASE") {
