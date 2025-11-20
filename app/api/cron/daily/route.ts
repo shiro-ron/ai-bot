@@ -10,10 +10,17 @@ export const runtime = "nodejs";
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
   const key = req.nextUrl.searchParams.get("key");
-  if (secret && key !== secret) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const fromVercelCron = req.headers.get("x-vercel-cron") !== null;
+
+  if (secret && !fromVercelCron && key !== secret) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
 
   const subs = await listSubscribers();
-  if (subs.length === 0) return NextResponse.json({ ok: true, sent: 0 });
+  if (subs.length === 0) {
+    console.warn("[cron] no subscribers");
+    return NextResponse.json({ ok: true, sent: 0, fromVercelCron });
+  }
 
   const ymd = new Date().toISOString().slice(0,10);
   let sent = 0;
@@ -23,7 +30,7 @@ export async function GET(req: NextRequest) {
       const f = simpleFortune(idx);
       await pushMessage(uid, [fortuneToFlex(f)]);
       sent++;
-    } catch (e) { console.error("push failed for", uid, e); }
+    } catch (e) { console.error("[cron] push failed", uid, e); }
   }
-  return NextResponse.json({ ok: true, sent });
+  return NextResponse.json({ ok: true, sent, fromVercelCron });
 }

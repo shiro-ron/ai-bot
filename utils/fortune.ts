@@ -1,7 +1,15 @@
-export function simpleFortune(cardIndex: number) {
+export type Fortune = {
+  title: string;
+  summary: string;
+  luckyColor: string;
+  actions: string[];
+  disclaimer: string;
+};
+export function simpleFortune(cardIndex: number): Fortune {
   const names = ["The Fool","The Magician","The High Priestess","The Empress","The Emperor","The Hierophant","The Lovers","The Chariot","Strength","The Hermit","Wheel of Fortune","Justice","The Hanged Man","Death","Temperance","The Devil","The Tower","The Star","The Moon","The Sun","Judgement","The World"];
   const name = names[cardIndex % names.length];
   const base = cardIndex % 5;
+  const advice = ["小さく始める","午前に決断","人に頼る","手放して整理","丁寧な準備"][base];
   const actions = [
     ["5分の散歩","机の整理","深呼吸3回"],
     ["午前に重要連絡","温かい飲み物","TODOを3つに"],
@@ -9,5 +17,5 @@ export function simpleFortune(cardIndex: number) {
     ["不要タスク削除","デスク拭き","早寝"],
     ["資料1つ仕上げ","10分学習","先延ばし解消"]
   ][base];
-  return { title: "今日の運勢", summary: `${name} の気配。`, luckyColor: ["水色","白","緑","金","紺"][base], actions, disclaimer: "※娯楽・自己内省のためのコンテンツです。" };
+  return { title: "今日の運勢", summary: `${name} の気配。${advice}と吉。`, luckyColor: ["水色","白","緑","金","紺"][base], actions, disclaimer: "※本コンテンツは娯楽・自己内省のためのものです。医療・法律・投資等の助言にはあたりません。" };
 }

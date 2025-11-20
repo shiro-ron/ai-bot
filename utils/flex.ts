@@ -1,11 +1,12 @@
-export function fortuneToFlex(f: any) {
+import type { Fortune } from "@/utils/fortune";
+export function fortuneToFlex(f: Fortune) {
   return { type: "flex", altText: "今日の運勢", contents: { type: "bubble", body: { type: "box", layout: "vertical", contents: [
     { type: "text", text: f.title, weight: "bold", size: "lg" },
     { type: "text", text: f.summary, wrap: true, margin: "md" },
     { type: "box", layout: "vertical", margin: "md", spacing: "xs", contents: [
       { type: "text", text: `ラッキーカラー：${f.luckyColor}`, size: "sm" },
       { type: "text", text: "今日の行動", weight: "bold", size: "sm", margin: "sm" },
-      ...f.actions.map((a: string) => ({ type: "text", text: `・${a}`, size: "sm", wrap: true }))
+      ...f.actions.map(a => ({ type: "text", text: `・${a}`, size: "sm", wrap: true }))
     ]},
     { type: "text", text: f.disclaimer, size: "xxs", color: "#999999", wrap: true, margin: "md" }
   ] } } };
@@ -19,13 +20,13 @@ export function quickReplyBasics() {
   ]};
 }
 export function paymentLinkFlex(url: string) {
-  return { type: "flex", altText: "購入", contents: { type: "bubble",
+  return { type: "flex", altText: "相性鑑定の購入", contents: { type: "bubble",
     body: { type: "box", layout: "vertical", contents: [
       { type: "text", text: "相性鑑定", weight: "bold", size: "lg" },
-      { type: "text", text: "ボタンから決済へお進みください。", wrap: true, margin: "md" }
+      { type: "text", text: "お相手の生年月日と合わせて鑑定します。まずはご購入をお願いします。", wrap: true, margin: "md" }
     ]},
     footer: { type: "box", layout: "vertical", spacing: "sm", contents: [
-      { type: "button", style: "primary", action: { type: "uri", label: "決済へ", uri: url } }
+      { type: "button", style: "primary", action: { type: "uri", label: "購入する（¥300）", uri: url } }
     ]}
   }};
 }
