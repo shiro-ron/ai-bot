@@ -1,8 +1,12 @@
-# LINE Fortune Bot PRO + DB (patched) — 2025-11-20
+# LINE Fortune Bot PRO + DB (patched2) — 2025-11-21
 
-Patched so that **Vercel Cron** calls are accepted via `x-vercel-cron` header (no `?key` needed).
-Manual calls still require `?key=CRON_SECRET` (if set).
+**401対策の検出強化版**：
+- Vercel Cron 判定: `x-vercel-cron` **or** `User-Agent: Vercel-Cron` **or** `x-vercel-signature`
+- `export const dynamic = 'force-dynamic'` を追加（キャッシュ抑止）
+- ログに `detect` オブジェクトを出力して原因を可視化
 
-- DB: `DB_BACKEND` = `SUPABASE` or `FIRESTORE` (fallback: `SUBSCRIBERS_CSV`)
-- Cron: JST 08:00 (UTC 23:00) via `vercel.json`
-- Endpoints: `/api/line/webhook`, `/api/cron/daily`
+## 手動確認
+- `GET /api/cron/daily?key=CRON_SECRET` は引き続きOK
+- ローカル再現: `curl -H 'x-vercel-cron: 1' https://.../api/cron/daily` で Cron 相当
+
+他は従来通り（Supabase / Firestore 切替、Flex、相性導線）。

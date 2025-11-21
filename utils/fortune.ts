@@ -1,10 +1,4 @@
-export type Fortune = {
-  title: string;
-  summary: string;
-  luckyColor: string;
-  actions: string[];
-  disclaimer: string;
-};
+export type Fortune = { title:string; summary:string; luckyColor:string; actions:string[]; disclaimer:string; };
 export function simpleFortune(cardIndex: number): Fortune {
   const names = ["The Fool","The Magician","The High Priestess","The Empress","The Emperor","The Hierophant","The Lovers","The Chariot","Strength","The Hermit","Wheel of Fortune","Justice","The Hanged Man","Death","Temperance","The Devil","The Tower","The Star","The Moon","The Sun","Judgement","The World"];
   const name = names[cardIndex % names.length];
